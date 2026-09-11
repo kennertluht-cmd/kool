@@ -396,6 +396,23 @@ const yv=s=>{ const m=String(s).match(/\d{3,4}/); return m?+m[0]:0; };
 const tok=s=>String(s).toLowerCase().match(/[a-z0-9õäöüšž]{4,}/g)||[];
 function overlap(a,b){ const A=new Set(tok(a)); let c=0; for(const w of new Set(tok(b))) if(A.has(w)) c++; return c; }
 const eventYear={}; dates.forEach(d=>eventYear[d.e]=yv(d.y));
+/* mõistete teemakategooriad — segajad valitakse samast teemast */
+const CAT={
+  "esemelised allikad":"allikad","arheoloogia":"allikad","dendrokronoloogia":"allikad","suuline pärimus":"allikad",
+  "Balti jääpaisjärv":"allikad","Billingeni katastroof":"allikad","maausk":"allikad",
+  "Kunda kultuur":"kiviaeg","Pulli":"kiviaeg","korilus":"kiviaeg","kammkeraamika kultuur":"kiviaeg",
+  "nöörkeraamika kultuur":"kiviaeg","alepõllundus":"kiviaeg","Narva tüüpi keraamika":"kiviaeg",
+  "europiidid":"kiviaeg","mongoliidid":"kiviaeg",
+  "pronks":"pronksiaeg","Asva kultuur":"pronksiaeg","kivikirstkalme":"pronksiaeg","laevkalme":"pronksiaeg",
+  "väikeselohulised kultusekivid":"pronksiaeg","tarandkalme":"pronksiaeg","soorauamaak":"pronksiaeg",
+  "etnogenees":"rahvad","läänemeresoome keeled":"rahvad","soome-ugri keeled":"rahvad","Läänemeresoome rahvad":"rahvad",
+  "mägilinnus":"linnused","neemiklinnus":"linnused","ringvall-linnus":"linnused",
+  "kihelkond":"haldus","maakond":"haldus","muinasmaakond":"haldus","malev":"haldus",
+  "sumbküla":"asustus","ridaküla":"asustus","hajaküla":"asustus","suitsutuba":"asustus",
+  "adramaa":"majandus","kolmeväljasüsteem":"majandus","vahetuskaubandus":"majandus","vahenduskaubandus":"majandus",
+};
+const defToTerm={}; Object.keys(concepts).forEach(t=>defToTerm[concepts[t]]=t);
+const sameCat=(a,b)=>CAT[a]&&CAT[a]===CAT[b];
 /* ranked: kandidaadid järjestatud sarnasuse järgi (kõige sarnasem ees) */
 function ranked(candidates, simOf){ return candidates.map(v=>({v, s:simOf(v)})).sort((a,b)=>b.s-a.s); }
 function mc(tag,q,correct,rankedPool,extra){ return Object.assign({tag,q,correct,ranked:rankedPool}, extra||{}); }
@@ -404,13 +421,16 @@ function mc(tag,q,correct,rankedPool,extra){ return Object.assign({tag,q,correct
 function pickByDiff(rk, diff){
   const P=rk.length;
   if(P<=3) return shuffle(rk.map(x=>x.v)).slice(0,3);
-  let lo,hi;
-  if(diff==="raske"){ lo=0; hi=Math.max(4,Math.ceil(P*0.4)); }
-  else if(diff==="kerge"){ lo=Math.floor(P*0.55); hi=P; }
-  else { lo=Math.floor(P*0.2); hi=Math.ceil(P*0.8); }
-  let slice=rk.slice(lo,hi);
-  if(slice.length<3) slice=rk;
-  return shuffle(slice).slice(0,3).map(x=>x.v);
+  const same=rk.filter(x=>x.s>=1000);   // mõistetel sama kategooria (+1000)
+  if(diff==="kerge"){                    // erineva teemaga / kauged = lihtne
+    let pool=rk.filter(x=>x.s<1000); if(pool.length<3) pool=rk;
+    pool=pool.slice(Math.max(0,pool.length-Math.max(6,Math.ceil(P*0.5))));
+    return shuffle(pool).slice(0,3).map(x=>x.v);
+  }
+  // raske / raskem = kõige sarnasemad (mõistetel sama teema)
+  let pool=same.slice();
+  if(pool.length<3){ for(const x of rk){ if(pool.indexOf(x)<0){ pool.push(x); if(pool.length>=(diff==="raske"?4:6))break; } } }
+  return shuffle(pool).slice(0,3).map(x=>x.v);
 }
 
 function buildPool(){
@@ -425,8 +445,8 @@ function buildPool(){
     Q.push(mc("DAATUMID",`Mis aastal: <span class="hl">${d.e}</span>?`, d.y, ranked(years.filter(y=>y!==d.y), yearSim(d.y))));
   });
   cT.forEach(t=>{
-    Q.push(mc("MÕISTED",`Mida tähendab: <span class="hl">${t}</span>?`, concepts[t], ranked(cD.filter(x=>x!==concepts[t]), x=>overlap(x,concepts[t]))));
-    Q.push(mc("MÕISTED",`Milline mõiste sobib: <span class="hl">${concepts[t]}</span>?`, t, ranked(cT.filter(x=>x!==t), x=>overlap(concepts[x],concepts[t]))));
+    Q.push(mc("MÕISTED",`Mida tähendab: <span class="hl">${t}</span>?`, concepts[t], ranked(cD.filter(x=>x!==concepts[t]), x=>(sameCat(defToTerm[x],t)?1000:0)+overlap(x,concepts[t]))));
+    Q.push(mc("MÕISTED",`Milline mõiste sobib: <span class="hl">${concepts[t]}</span>?`, t, ranked(cT.filter(x=>x!==t), x=>(sameCat(x,t)?1000:0)+overlap(concepts[x],concepts[t]))));
   });
   pN.forEach(n=>{
     Q.push(mc("ISIKUD",`Kes oli <span class="hl">${n}</span>?`, people[n], ranked(pD.filter(x=>x!==people[n]), x=>overlap(x,people[n]))));
