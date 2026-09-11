@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f0f0f" />
+<title>Eesti muinasaeg — kontrolltöö</title>
+<style>
+  :root{
+    --bg:#0f0f0f; --ink:#f1f1f1; --muted:#aaaaaa;
+    --accent:#ff4e45; --accent2:#ff7a73;
+    --good:#2ecc71; --bad:#ff4e45;
+    --card:#212121; --line:#303030;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:"Roboto","Segoe UI",system-ui,-apple-system,sans-serif; color:var(--ink);
+    -webkit-tap-highlight-color:transparent;
+    background:#0f0f0f;
+    display:flex;align-items:center;justify-content:center;padding:20px;overflow-x:hidden;
+  }
+  .stage{width:100%;max-width:700px;}
+  .shake{animation:shake .35s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+  .pop{animation:pop .3s;}
+  @keyframes pop{0%{transform:scale(.97)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);
+    padding:28px;
+  }
+  .hero{text-align:center;}
+  .hero h1{margin:6px 0 0;font-size:30px;letter-spacing:.3px;line-height:1.15;font-weight:900;color:#fff;}
+  .hero .sub{color:var(--muted);margin:12px 0 22px;font-size:14.5px;line-height:1.5;}
+  .label{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:6px 0 9px;font-weight:700;}
+  .topics{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{border:1px solid var(--line);background:#272727;color:var(--muted);font:inherit;font-weight:700;font-size:13px;
+    padding:9px 14px;border-radius:999px;cursor:pointer;transition:.12s;}
+  .chip .c{opacity:.7;font-size:11px;margin-left:2px;}
+  .chip.on{background:#fff;color:#0f0f0f;border-color:#fff;}
+  .selcount{color:var(--muted);font-size:13px;margin:12px 0 6px;text-align:center;}
+  .orline{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;letter-spacing:1px;
+    text-transform:uppercase;margin:20px 0 12px;}
+  .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line);}
+  .btn{
+    border:0;cursor:pointer;font:inherit;font-weight:800;letter-spacing:.3px;
+    padding:15px 28px;border-radius:12px;font-size:16px;width:100%;
+    background:#fff;color:#0f0f0f;transition:.15s;
+  }
+  .btn:hover{transform:translateY(-2px);background:#e9e9e9;}
+  .btn.alt{background:#272727;color:var(--ink);border:1px solid var(--line);}
+  .btn.alt:hover{background:#2e2e2e;border-color:#555;transform:translateY(-2px);}
+  .btn + .btn{margin-top:10px;}
+  .hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;}
+  .quit{background:none;border:1px solid var(--line);color:var(--muted);font:inherit;font-weight:700;font-size:12.5px;
+    padding:6px 11px;border-radius:9px;cursor:pointer;transition:.12s;flex:0 0 auto;}
+  .quit:hover{border-color:var(--bad);color:var(--ink);}
+  .qcount{color:var(--muted);font-size:13px;font-weight:700;margin-left:auto;}
+  .score{font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--accent);}
+  .score small{color:var(--muted);font-size:12px;font-weight:600;}
+  .progress{height:5px;background:#303030;border-radius:6px;overflow:hidden;margin-bottom:12px;}
+  .progress > i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s;}
+  .combo{height:20px;margin-bottom:8px;text-align:center;font-weight:800;color:var(--good);font-size:15px;opacity:0;transition:.2s;}
+  .combo.show{opacity:1;}
+  .countdown{text-align:center;font-weight:800;font-size:15px;color:var(--muted);margin-bottom:18px;
+    letter-spacing:1px;font-variant-numeric:tabular-nums;transition:color .2s;}
+  .countdown.low{color:var(--bad);}
+  .tag{display:inline-block;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--muted);background:#272727;border:1px solid var(--line);padding:4px 12px;border-radius:999px;margin-bottom:6px;}
+  .pilettag{display:block;color:var(--accent);font-size:12px;font-weight:700;margin-bottom:6px;}
+  .question{font-size:21px;font-weight:700;line-height:1.45;margin:0 0 20px;min-height:60px;}
+  .question .hl{color:var(--accent);}
+  .opts{display:grid;gap:10px;}
+  .opt{
+    text-align:left;border:1px solid var(--line);background:#181818;color:var(--ink);
+    font:inherit;font-size:16px;font-weight:600;padding:14px 15px;border-radius:12px;cursor:pointer;
+    display:flex;align-items:flex-start;gap:12px;transition:.12s;
+  }
+  .opt:hover:not(:disabled){border-color:#777;background:#1e1e1e;}
+  .opt .num{width:25px;height:25px;flex:0 0 auto;border-radius:7px;background:#303030;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin-top:1px;}
+  .opt .body{display:flex;flex-direction:column;gap:3px;}
+  .opt .mean{display:none;font-size:12.5px;color:var(--muted);font-weight:500;line-height:1.4;}
+  .opts.revealed .mean{display:block;}
+  .opt.correct{background:rgba(46,204,113,.16);border-color:var(--good);}
+  .opt.correct .num{background:var(--good);color:#06281a;}
+  .opt.correct .mean{color:#8be0ad;}
+  .opt.wrong{background:rgba(255,78,69,.16);border-color:var(--bad);}
+  .opt.wrong .num{background:var(--bad);color:#2a0606;}
+  .opt:disabled{cursor:default;}
+  .result{margin-top:16px;font-size:15px;font-weight:700;display:none;}
+  .result.show{display:block;animation:pop .3s;}
+  .result.ok{color:var(--good);} .result.no{color:var(--bad);}
+  .next{margin-top:14px;display:none;}
+  .next.show{display:block;}
+  .graderow{display:flex;gap:10px;margin-top:4px;}
+  .graderow .btn{margin-top:0;}
+  .gradeyes{background:var(--good);color:#06281a;}
+  .gradeyes:hover{background:#46d98a;}
+  #revealBtn{font-size:16px;}
+  .dbhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .dbhead h2{margin:0;font-size:19px;}
+  .link{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;font-size:14px;font-weight:700;}
+  .search,select.search{width:100%;background:#181818;border:1px solid var(--line);color:var(--ink);font:inherit;font-size:16px;
+    padding:13px 15px;border-radius:12px;margin-bottom:14px;}
+  .search:focus{outline:none;border-color:var(--accent);}
+  select.search{appearance:none;-webkit-appearance:none;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);
+    background-position:calc(100% - 20px) 20px,calc(100% - 14px) 20px;background-size:6px 6px,6px 6px;background-repeat:no-repeat;}
+  select.search option{background:#212121;color:var(--ink);}
+  .dblist{max-height:64vh;overflow:auto;display:flex;flex-direction:column;gap:7px;}
+  .dbgroup{position:sticky;top:0;background:var(--card);color:var(--muted);font-size:11.5px;letter-spacing:1px;
+    text-transform:uppercase;padding:9px 2px 5px;font-weight:700;}
+  .dbrow{display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:#181818;border:1px solid var(--line);border-radius:10px;}
+  .dbrow b{color:var(--accent);font-size:14.5px;}
+  .dbrow span{color:var(--ink);font-size:13.5px;}
+  .dbempty{color:var(--muted);text-align:center;padding:28px;}
+  .end{text-align:center;}
+  .rank{font-size:30px;font-weight:900;margin:6px 0 2px;color:var(--accent);}
+  .endstats{display:flex;justify-content:center;gap:26px;margin:18px 0;}
+  .endstats .s b{display:block;font-size:30px;color:var(--accent);}
+  .endstats .s span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+  .review{text-align:left;margin:16px 0;max-height:240px;overflow:auto;}
+  .review h3{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:0 0 10px;}
+  .review .r{padding:10px 12px;background:#181818;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;font-size:13.5px;line-height:1.5;}
+  .review .r .a{color:var(--good);font-weight:700;}
+  .perfect{color:var(--good);font-weight:800;margin:8px 0;}
+  #cfx{position:fixed;inset:0;pointer-events:none;z-index:50;}
+  @media (max-width:520px){
+    body{padding:12px;}
+    .panel{padding:20px 16px;border-radius:14px;}
+    .hero h1{font-size:24px;}
+    .question{font-size:19px;min-height:48px;}
+    .opt{font-size:15px;padding:13px;}
+    .endstats{gap:16px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="cfx"></canvas>
+<div class="stage">
+
+  <!-- LANDING -->
+  <section class="panel hero" id="screenStart">
+    <span class="tag">Eesti muinasaeg</span>
+    <h1>Eesti muinasaeg</h1>
+    <p class="sub">Kontrolltöö kordamine — kiviaeg, pronksiaeg, rauaaeg (õpik ptk 1-5). Vali teemad või kindel ajastu.</p>
+    <button class="btn" id="toSetupBtn">ALUSTA</button>
+    <button class="btn alt" id="dbBtn">Andmebaas / spikker</button>
+  </section>
+
+  <!-- MODE: valikvastustega või ilma -->
+  <section class="panel" id="screenMode" style="display:none;">
+    <div class="dbhead">
+      <h2>Kuidas vastata?</h2>
+      <button class="link" id="modeBack">← tagasi</button>
+    </div>
+    <button class="btn" id="modeValik">Valikvastustega</button>
+    <div class="selcount" style="margin:6px 0 18px;">Vali õige vastus 4 valiku seast</div>
+    <button class="btn alt" id="modeIlma">Ilma valikvastusteta</button>
+    <div class="selcount" style="margin-top:6px;">Mõtle ise, siis kontrolli: „Teadsin" / „Ei teadnud"</div>
+  </section>
+
+  <!-- SETUP: vali mida õppida -->
+  <section class="panel" id="screenSetup" style="display:none;">
+    <div class="dbhead">
+      <h2>Mida õppida?</h2>
+      <button class="link" id="setupBack">← tagasi</button>
+    </div>
+    <div id="diffWrap">
+      <div class="label">Raskusaste</div>
+      <div class="topics" id="diffSel"></div>
+      <div class="selcount" id="diffHint" style="margin-top:8px;"></div>
+    </div>
+    <div class="label" style="margin-top:16px;">Teemad</div>
+    <div class="topics" id="topics"></div>
+    <div class="selcount" id="selCount"></div>
+    <button class="btn" id="playBtn">MÄNGI</button>
+
+    <div class="orline">või vali kindel ajastu</div>
+    <select id="piletSelect" class="search"></select>
+    <button class="btn alt" id="playPiletBtn">MÄNGI VALITUD TEEMA</button>
+    <button class="btn alt" id="randomPiletBtn">JUHUSLIK TEEMA</button>
+
+    <button class="btn alt" id="bankBtn" style="display:none;margin-top:18px;">Korda vigu</button>
+  </section>
+
+  <!-- DATABASE -->
+  <section class="panel" id="screenDb" style="display:none;">
+    <div class="dbhead">
+      <h2>Andmebaas</h2>
+      <button class="link" id="dbBack">← tagasi</button>
+    </div>
+    <input id="dbSearch" class="search" placeholder="Otsi aastat, mõistet, isikut või fakti…" />
+    <div id="dbList" class="dblist"></div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="panel" id="screenPlay" style="display:none;">
+    <div class="hud">
+      <button class="quit" id="quitBtn">← Menüü</button>
+      <div class="qcount" id="qcount">1 / 0</div>
+      <div class="score"><span id="score">0</span> <small>p</small></div>
+    </div>
+    <div class="progress"><i id="progfill"></i></div>
+    <div class="combo" id="combo"></div>
+    <span class="pilettag" id="pilettag" style="display:none;"></span>
+    <div class="tag" id="qtag">—</div>
+    <h2 class="question" id="question">…</h2>
+    <div class="opts" id="opts"></div>
+    <div class="result" id="result"></div>
+    <button class="btn next" id="nextBtn">EDASI →</button>
+  </section>
+
+  <!-- END -->
+  <section class="panel end" id="screenEnd" style="display:none;">
+    <span class="tag">Läbitud</span>
+    <div class="rank" id="rank">—</div>
+    <div id="rankSub" style="color:var(--muted);font-size:14px;"></div>
+    <div class="endstats">
+      <div class="s"><b id="endScore">0</b><span>punkti</span></div>
+      <div class="s"><b id="endAcc">0%</b><span>täpsus</span></div>
+      <div class="s"><b id="endBest">0</b><span>parim kombo</span></div>
+    </div>
+    <div id="perfect" class="perfect" style="display:none;">Laitmatu! Kõik õiged!</div>
+    <div class="review" id="review"></div>
+    <button class="btn" id="redoBtn" style="display:none;">Korda ainult vigu</button>
+    <button class="btn alt" id="againBtn">Mängi uuesti</button>
+    <button class="btn alt" id="homeBtn">Avalehele</button>
+  </section>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ===== RAUDVARA ===== */
+const dates = [
+  {y:"u 13 000 a tagasi", e:"lõppes viimane jääaeg; tekkis Balti jääpaisjärv"},
+  {y:"u 9500 eKr", e:"Billingeni katastroof — tekkis Joldia meri"},
+  {y:"9000 eKr", e:"varaseim inimasustus Eestis (Kunda kultuur, Pulli asula)"},
+  {y:"u 9000–3900 eKr", e:"keskmine kiviaeg (mesoliitikum)"},
+  {y:"u 3900–1750 eKr", e:"noorem kiviaeg (neoliitikum)"},
+  {y:"u 3900 eKr", e:"kammkeraamika kultuur"},
+  {y:"u 2800 eKr", e:"nöörkeraamika (venekirveste) kultuur"},
+  {y:"u 1750–500 eKr", e:"pronksiaeg — Asva kultuur"},
+  {y:"800–500 eKr", e:"soomeugrilaste sisseränne (kolme laine teooria)"},
+  {y:"500 eKr–50 pKr", e:"eelrooma rauaaeg — tarandkalmed"},
+  {y:"98 pKr", e:"Tacitus kirjutab aestidest ja fennidest (esmamainimine)"},
+  {y:"u 50–450", e:"rooma rauaaeg"},
+  {y:"u 450–800", e:"keskmine rauaaeg — esimesed linnused"},
+  {y:"u 600", e:"kuningas Ingvari sõjaretk Eestisse"},
+  {y:"u 800–1050", e:"viikingiaeg"},
+  {y:"1030", e:"Jaroslav Targa sõjaretk — Tartu (Jurjevi) esmamainimine"},
+  {y:"1061", e:"eestlased löövad Jurjevist tagasi Izjaslavi"},
+  {y:"u 1050–1200", e:"hilisrauaaeg"},
+];
+
+const concepts = {
+  "esemelised allikad":"muinasaja peamised allikad — leiud (esemed, ehitised)",
+  "arheoloogia":"teadus, mis uurib esemelisi allikaid (leide)",
+  "dendrokronoloogia":"puude aastarõngaste järgi vanuse määramine",
+  "suuline pärimus":"põlvest põlve edasi antud jutud ja laulud (ajalooallikas)",
+  "Balti jääpaisjärv":"jääajajärgne mageveekogu Läänemere kohal",
+  "Billingeni katastroof":"u 9500 eKr — jääpaisjärve vee järsk väljavool merre",
+  "maausk":"eestlaste muinasaegne loodususk",
+  "Kunda kultuur":"keskmise kiviaja kultuur (nimi Kunda asula järgi)",
+  "Pulli":"Eesti vanim teadaolev asula (keskmine kiviaeg, u 9000 eKr)",
+  "korilus":"looduslike toiduandide kogumine (marjad, taimed, juured)",
+  "kammkeraamika kultuur":"noorema kiviaja kultuur — kammilaadse pitsatiga savinõud",
+  "nöörkeraamika kultuur":"venekirveste kultuur — nöörijäljendiga savinõud, paadikujulised kivikirved",
+  "alepõllundus":"metsa mahavõtmine ja põletamine põllu rajamiseks (tuhk väetiseks)",
+  "Narva tüüpi keraamika":"kiviaja kohalik keraamikatüüp",
+  "europiidid":"euroopa antropoloogiline tüüp",
+  "mongoliidid":"mongoolne antropoloogiline tüüp (seostatud kammkeraamikaga)",
+  "pronks":"tina ja vase sulam; Eestis haruldane ja kallis (importkaup)",
+  "Asva kultuur":"pronksiaja tuntuim asula — kindlustatud asula Saaremaal",
+  "kivikirstkalme":"pronksiaja kivist matmispaik (kirst)",
+  "laevkalme":"pronksiaja laevakujuline kivikalme",
+  "väikeselohulised kultusekivid":"pronksiaja kivid väikeste lohkudega (kultuslik otstarve)",
+  "tarandkalme":"rauaaja maapealne kalmetüüp — nelinurksed kivitarad",
+  "soorauamaak":"soodest saadav rauamaak, millest sulatati rauda",
+  "etnogenees":"rahva (etnose) kujunemine",
+  "läänemeresoome keeled":"eesti, liivi, soome, vadja jt keeled",
+  "soome-ugri keeled":"keelkond: eesti, soome, mari, mordva, ungari jt",
+  "Läänemeresoome rahvad":"eestlased, soomlased, liivlased, karjalased, vepslased, isurid, ingerlased",
+  "mägilinnus":"kõrgele mäele rajatud linnus (nt Otepää)",
+  "neemiklinnus":"neemele rajatud linnus (enim levinud)",
+  "ringvall-linnus":"tasandikule rajatud ümmarguse valliga linnus",
+  "adramaa":"maaharimise ja maksustamise ühik (ühe adra jagu maad)",
+  "kolmeväljasüsteem":"põlluharimisviis: talivili, suvivili, kesa",
+  "sumbküla":"tihe, korrapäratu külatüüp",
+  "ridaküla":"ritta ehitatud külatüüp (enim levinud)",
+  "hajaküla":"hajali paiknev külatüüp",
+  "kihelkond":"muinasaja haldusüksus (mitu küla)",
+  "maakond":"suurim muinasaja haldusüksus (mitu kihelkonda)",
+  "muinasmaakond":"muinasaja iseseisev maa (nt Ugandi, Sakala, Rävala, Saaremaa)",
+  "malev":"muinasaja sõjavägi",
+  "suitsutuba":"korstnata rehetare-ruum (suits läks katuseavast)",
+  "vahetuskaubandus":"kaup kauba vastu (raha ei tuntud, arvestati kaalu järgi)",
+  "vahenduskaubandus":"kaupade edasivahendamine (ida ja lääne vahel)",
+};
+
+const people = {
+  "Tacitus":"Rooma ajaloolane — 98 pKr kirjutas aestidest ja fennidest",
+  "aestid":"Tacituse mainitud rahvas Läänemere idakaldal (eestlased)",
+  "fennid":"Tacituse mainitud soome-ugri rahvas",
+  "Kalevi Wiik":"keeleteadlane — ühe (rände)laine teooria",
+  "kuningas Ingvar":"rootsi kuningas — u 600 sõjaretk, sai Eestis surma (ynglingite saaga)",
+  "Jaroslav Tark":"Kiievi suurvürst — 1030 sõjaretk, rajas Jurjevi (Tartu)",
+  "Izjaslav":"Kiievi vürst, kelle eestlased 1061 Jurjevist tagasi lõid",
+  "tšuudid":"vana-vene kroonikate nimetus eestlastele",
+};
+
+const PILETID = [
+ {n:1, t:"Muinasaja allikad ja loodusolud", q:[
+   ["Muinasaja peamised allikad on (kirjalikke on vähe)?","esemelised allikad ehk leiud","kroonikad","päevikud","ajalehed"],
+   ["Teadus, mis uurib muinasaja esemelisi allikaid, on?","arheoloogia","dendrokronoloogia","etnograafia","geoloogia"],
+   ["Puude aastarõngaste järgi vanuse määramist nimetatakse?","dendrokronoloogia","kartograafia","stratigraafia","genealoogia"],
+   ["Millal lõppes Eesti alal viimane jääaeg?","u 13 000 aastat tagasi","u 5000 aastat tagasi","u 2000 aastat tagasi","u 50 000 aastat tagasi"],
+   ["Jääaja järel Läänemere kohal olnud mageveekogu oli?","Balti jääpaisjärv","Litoriina meri","Läänemeri","Vahemeri"],
+   ["Kuidas nimetatakse u 9500 eKr jääpaisjärve vee järsku väljavoolu?","Billingeni katastroof","Litoriina üleujutus","suur veeuputus","Joldia murre"],
+ ]},
+ {n:2, t:"Kiviaeg", q:[
+   ["Eesti vanim teadaolev asula oli?","Pulli","Asva","Tartu","Kunda linnus"],
+   ["Keskmise kiviaja kultuuri Eestis nimetatakse?","Kunda kultuur","Asva kultuur","kammkeraamika kultuur","nöörkeraamika kultuur"],
+   ["Kammilaadse pitsatiga kaunistatud savinõud iseloomustavad?","kammkeraamika kultuuri","nöörkeraamika kultuuri","Asva kultuuri","Kunda kultuuri"],
+   ["Nöörkeraamika (venekirveste) kultuuri tunnus oli?","paadikujulised kivikirved","pronksmõõgad","rauast sirbid","tarandkalmed"],
+   ["Millega kiviaja inimesed peamiselt toitu hankisid?","kalastamine, küttimine, korilus","põlluharimine ja karjakasvatus","kaubandus","rauasulatus"],
+   ["Mis jõudis Eestisse koos nöörkeraamika kultuuriga?","algeline põlluharimine ja karjakasvatus","rauasulatus","kristlus","linnade rajamine"],
+ ]},
+ {n:3, t:"Pronksiaeg", q:[
+   ["Pronksiaeg Eestis kestis umbes?","1750–500 eKr","9000–3900 eKr","500 eKr – 50 pKr","800–1050 pKr"],
+   ["Tuntuim pronksiaja kindlustatud asula (Saaremaal) kuulus?","Asva kultuuri","Kunda kultuuri","kammkeraamika kultuuri","Narva kultuuri"],
+   ["Miks oli pronks Eestis kallis ja haruldane?","tina ja vaske tuli sisse vedada (importkaup)","seda oli raske sepistada","see roostetas kiiresti","see oli keelatud"],
+   ["Pronksiaja matmispaigad olid?","kivikirst- ja laevkalmed","tarandkalmed","kääpad","kirikaiad"],
+   ["Milline uus elatusala levis pronksiajal?","karjakasvatus ja maaviljelus","rauasulatus","meresõit Ameerikasse","linnade ehitus"],
+ ]},
+ {n:4, t:"Rauaaeg", q:[
+   ["Eelrooma rauaaja iseloomulik (maapealne) kalmetüüp oli?","tarandkalme","laevkalme","kivikirstkalme","kääbas"],
+   ["Millest muinaseestlased rauda sulatasid?","kohalikust soorauamaagist","imporditud maagist","meteoriidirauast","vasemaagist"],
+   ["Kes kirjutas 98 pKr aestidest ja fennidest?","Tacitus","Ptolemaios","Jaroslav Tark","Herodotos"],
+   ["Rooma rauaajal (u 50–450)?","Rooma ei jõudnud Eestisse, leitud vaid üksikud esemed","Rooma vallutas Eesti","eestlased käisid Roomas sõdimas","Eesti oli Rooma provints"],
+   ["Keskmisel rauaajal (u 450–800) hakati rajama?","linnuseid","kirikuid","kloostreid","mõisaid"],
+   ["Milline EI ole muinaslinnuse tüüp?","katedraallinnus","mägilinnus","neemiklinnus","ringvall-linnus"],
+ ]},
+ {n:5, t:"Viikingiaeg", q:[
+   ["Viikingiaeg Eestis kestis umbes?","800–1050","500 eKr – 50 pKr","1050–1200","1750–500 eKr"],
+   ["Skandinaavia allikad, mis Eestist kõnelevad, on?","saagad ja ruunikivid","kroonikad ja bullad","piibel","hansadokumendid"],
+   ["Mis toimus 1030. aastal?","Jaroslav Targa sõjaretk ja Tartu (Jurjevi) esmamainimine","viikingiaja algus","Billingeni katastroof","Asva asula rajamine"],
+   ["Keda tähistab vana-vene kroonikate sõna „tšuudid“?","eestlasi","sakslasi","rootslasi","slaavlasi"],
+   ["Mis juhtus 1061. aastal?","eestlased lõid Jurjevist tagasi vürst Izjaslavi","eestlased võtsid ristiusu","rajati Tartu","algas pronksiaeg"],
+ ]},
+ {n:6, t:"Hilisrauaaeg (elatusalad ja asustus)", q:[
+   ["Hilisrauaaeg kestis umbes?","1050–1200","800–1050","500 eKr – 50 pKr","1200–1558"],
+   ["Suurim muinasaja haldusüksus oli?","maakond","kihelkond","küla","adramaa"],
+   ["Muinasaja üksus, mis koosnes mitmest külast, oli?","kihelkond","maakond","adramaa","malev"],
+   ["Milline oli üks muinas-Eesti maakond?","Ugandi","Tartu piiskopkond","Liivimaa","Vironia hertsogkond"],
+   ["Muinaseestlaste sõjaväge nimetati?","malev","leegion","raad","vürstisalk"],
+   ["Milline EI ole muinasaja külatüüp?","tänavküla","sumbküla","ridaküla","hajaküla"],
+   ["Korstnata rehetare-ruumi nimetati?","suitsutuba","kelder","saun","ait"],
+   ["Hilisrauaaja põlluharimisviis oli?","kolmeväljasüsteem","alepõllundus","kaheväljasüsteem","istutuspõllundus"],
+   ["Vahetuskaubanduse puhul?","kaup vahetati kauba vastu (raha ei tuntud)","maksti kullas","kasutati paberraha","kaubeldi ainult soolaga"],
+ ]},
+ {n:7, t:"Etnogenees ja keeled", q:[
+   ["Soomeugrilaste sisserännet (kolme laine teooria) dateeritakse?","800–500 eKr","9000 eKr","1030 pKr","500 pKr"],
+   ["Kalevi Wiik esitas 1990ndatel?","ühe laine teooria","kolme laine teooria","normannide teooria","migratsiooni puudumise"],
+   ["Milline keel EI kuulu läänemeresoome keelte hulka?","ungari","eesti","liivi","soome"],
+   ["Millised rahvad kõnelevad soome-ugri keeli?","eestlased, soomlased, ungarlased","eestlased, sakslased, rootslased","eestlased, lätlased, leedulased","eestlased, venelased, poolakad"],
+   ["Rahva (etnose) kujunemist nimetatakse?","etnogenees","periodiseering","koloniseerimine","assimilatsioon"],
+ ]},
+];
+
+/* ===== GLOSS + ANDMEBAAS ===== */
+const GLOSS = {};
+const gset = (k,v)=>{ if(k!=null && !(k in GLOSS)) GLOSS[k]=v; };
+dates.forEach(d=>{ gset(d.y,d.e); gset(d.e,d.y); });
+Object.entries(concepts).forEach(([t,d])=>{ gset(t,d); gset(d,t); });
+Object.entries(people).forEach(([n,de])=>{ gset(n,de); gset(de,n); });
+const meaningOf = s => GLOSS[s] || "";
+
+const GLOSSARY=[];
+dates.forEach(d=>GLOSSARY.push({term:d.y, meaning:d.e, g:"Daatumid"}));
+Object.entries(concepts).forEach(([t,d])=>GLOSSARY.push({term:t, meaning:d, g:"Mõisted"}));
+Object.entries(people).forEach(([n,de])=>GLOSSARY.push({term:n, meaning:de, g:"Isikud"}));
+PILETID.forEach(p=> p.q.forEach(a=> GLOSSARY.push({term:a[0], meaning:a[1], g:"Teemad: "+p.n+". "+p.t})));
+
+/* ===== GENERAATOR ===== */
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+/* sarnasus-abilised: segajad valitakse õigele lähedolu järgi (raskusaste) */
+const yv=s=>{ const m=String(s).match(/\d{3,4}/); return m?+m[0]:0; };
+const tok=s=>String(s).toLowerCase().match(/[a-z0-9õäöüšž]{4,}/g)||[];
+function overlap(a,b){ const A=new Set(tok(a)); let c=0; for(const w of new Set(tok(b))) if(A.has(w)) c++; return c; }
+const eventYear={}; dates.forEach(d=>eventYear[d.e]=yv(d.y));
+/* ranked: kandidaadid järjestatud sarnasuse järgi (kõige sarnasem ees) */
+function ranked(candidates, simOf){ return candidates.map(v=>({v, s:simOf(v)})).sort((a,b)=>b.s-a.s); }
+function mc(tag,q,correct,rankedPool,extra){ return Object.assign({tag,q,correct,ranked:rankedPool}, extra||{}); }
+/* pickByDiff: vali 3 segajat raskusastme järgi
+   raske=kõige sarnasemad (eksitavad), kerge=kõige erinevamad, raskem=keskmised */
+function pickByDiff(rk, diff){
+  const P=rk.length;
+  if(P<=3) return shuffle(rk.map(x=>x.v)).slice(0,3);
+  let lo,hi;
+  if(diff==="raske"){ lo=0; hi=Math.max(4,Math.ceil(P*0.4)); }
+  else if(diff==="kerge"){ lo=Math.floor(P*0.55); hi=P; }
+  else { lo=Math.floor(P*0.2); hi=Math.ceil(P*0.8); }
+  let slice=rk.slice(lo,hi);
+  if(slice.length<3) slice=rk;
+  return shuffle(slice).slice(0,3).map(x=>x.v);
+}
+
+function buildPool(){
+  const Q=[];
+  const events=dates.map(d=>d.e), years=dates.map(d=>d.y);
+  const cT=Object.keys(concepts), cD=Object.values(concepts);
+  const pN=Object.keys(people), pD=Object.values(people);
+  const yearSim=cy=>y=>-Math.abs(yv(y)-yv(cy));               // lähedane aasta = sarnane
+  const eventSim=ce=>ev=>-Math.abs((eventYear[ev]||0)-(eventYear[ce]||0)); // lähedane sündmus ajas
+  dates.forEach(d=>{
+    Q.push(mc("DAATUMID",`Mis toimus aastal <span class="hl">${d.y}</span>?`, d.e, ranked(events.filter(e=>e!==d.e), eventSim(d.e))));
+    Q.push(mc("DAATUMID",`Mis aastal: <span class="hl">${d.e}</span>?`, d.y, ranked(years.filter(y=>y!==d.y), yearSim(d.y))));
+  });
+  cT.forEach(t=>{
+    Q.push(mc("MÕISTED",`Mida tähendab: <span class="hl">${t}</span>?`, concepts[t], ranked(cD.filter(x=>x!==concepts[t]), x=>overlap(x,concepts[t]))));
+    Q.push(mc("MÕISTED",`Milline mõiste sobib: <span class="hl">${concepts[t]}</span>?`, t, ranked(cT.filter(x=>x!==t), x=>overlap(concepts[x],concepts[t]))));
+  });
+  pN.forEach(n=>{
+    Q.push(mc("ISIKUD",`Kes oli <span class="hl">${n}</span>?`, people[n], ranked(pD.filter(x=>x!==people[n]), x=>overlap(x,people[n]))));
+    Q.push(mc("ISIKUD",`Kes on: <span class="hl">${people[n]}</span>?`, n, ranked(pN.filter(x=>x!==n), x=>overlap(people[x],people[n]))));
+  });
+  PILETID.forEach(p=> p.q.forEach(a=>{
+    Q.push(mc("TEEMAD", a[0], a[1], ranked([a[2],a[3],a[4]], ()=>0), {pilet:p.n, piletName:p.n+". "+p.t}));
+  }));
+  return Q;
+}
+
+/* ===== MOOTOR ===== */
+const TIME=15;
+const RANKS=[
+  {min:0,  name:"Barbar",   sub:"Rändad veel — korda daatumid üle!"},
+  {min:40, name:"Vasall",   sub:"Truudusvanne antud, edasi!"},
+  {min:60, name:"Rüütel",   sub:"Tubli — lahing su kasuks."},
+  {min:75, name:"Õpetlane", sub:"Raudvara hakkab paika loksuma."},
+  {min:90, name:"Humanist", sub:"Peaaegu meister!"},
+  {min:100,name:"Magister", sub:"Laitmatu. Arvestus tehtud."},
+];
+const el=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const TAG_ORDER=["DAATUMID","MÕISTED","ISIKUD","TEEMAD"];
+const FULL=buildPool();
+const tagCounts={}; FULL.forEach(q=>tagCounts[q.tag]=(tagCounts[q.tag]||0)+1);
+const presentTags=TAG_ORDER.filter(t=>tagCounts[t]);
+const selectedTags=new Set(presentTags);
+const mistakeBank=new Map(); // q.q -> question (kõik tehtud vead, igal tasemel)
+const game={queue:[],idx:0,score:0,combo:0,bestCombo:0,correctCount:0,answered:false,timer:null,timeLeft:TIME,missed:[],_acc:0,lastOpts:{}};
+let difficulty="raskem";
+let answerMode="valik"; // "valik" = valikvastustega, "ilma" = õpikaardid
+const DIFFS=[["kerge","Kerge"],["raskem","Raskem"],["raske","Kõige raskem"]];
+
+function show(s){
+  el("screenStart").style.display=s==="start"?"block":"none";
+  el("screenMode").style.display =s==="mode"?"block":"none";
+  el("screenSetup").style.display=s==="setup"?"block":"none";
+  el("screenDb").style.display   =s==="db"?"block":"none";
+  el("screenPlay").style.display =s==="play"?"block":"none";
+  el("screenEnd").style.display  =s==="end"?"block":"none";
+  if(s==="setup"){ updateBank(); el("diffWrap").style.display = answerMode==="ilma" ? "none":"block"; }
+}
+
+/* ----- setup: raskusaste + teemad + pilet + vigade pank ----- */
+function renderDiff(){
+  const box=el("diffSel"); box.innerHTML="";
+  DIFFS.forEach(([k,label])=>{
+    const b=document.createElement("button");
+    b.className="chip"+(k===difficulty?" on":""); b.dataset.k=k;
+    b.textContent=label;
+    b.onclick=()=>{ difficulty=k; [...box.children].forEach(c=>c.classList.toggle("on",c.dataset.k===k)); updateDiffHint(); };
+    box.appendChild(b);
+  });
+  updateDiffHint();
+}
+function updateDiffHint(){
+  const h={kerge:"Valed vastused on selgelt erinevad — lihtne ära tunda.",
+           raskem:"Valed vastused on mõõdukalt eksitavad.",
+           raske:"Valed vastused on õigele väga lähedased — päriselt eksitavad."};
+  el("diffHint").textContent=h[difficulty]||"";
+}
+function renderTopics(){
+  const box=el("topics"); box.innerHTML="";
+  presentTags.forEach(t=>{
+    const b=document.createElement("button");
+    b.className="chip on"; b.dataset.tag=t;
+    b.innerHTML=`${t} <span class="c">${tagCounts[t]}</span>`;
+    b.onclick=()=>{ b.classList.toggle("on");
+      if(b.classList.contains("on")) selectedTags.add(t); else selectedTags.delete(t);
+      updateSelCount(); };
+    box.appendChild(b);
+  });
+  updateSelCount();
+}
+function selectedQuestions(){ return FULL.filter(q=>selectedTags.has(q.tag)); }
+function updateSelCount(){
+  const n=selectedQuestions().length;
+  el("selCount").textContent = n ? `${n} küsimust valitud` : "Vali vähemalt üks teema";
+  el("playBtn").disabled = n===0;
+  el("playBtn").style.opacity = n===0 ? .45 : 1;
+}
+function fillPiletSelect(){
+  const s=el("piletSelect");
+  s.innerHTML='<option value="">— vali teema —</option>'+
+    PILETID.map(p=>`<option value="${p.n}">${p.n}. ${p.t} (${p.q.length})</option>`).join("");
+}
+function updateBank(){
+  const n=mistakeBank.size, b=el("bankBtn");
+  if(n){ b.style.display="block"; b.textContent="Korda kõiki vigu ("+n+")"; }
+  else b.style.display="none";
+}
+
+/* ----- mäng ----- */
+function startGame(opts){
+  opts=opts||{};
+  let base;
+  if(opts.custom && opts.custom.length) base=opts.custom;
+  else if(opts.pilet) base=FULL.filter(q=>q.pilet===opts.pilet);
+  else base=selectedQuestions();
+  if(!base.length) return;
+  if(!opts.custom) game.lastOpts={pilet:opts.pilet||0};
+  game.queue=shuffle(base.slice());
+  game.idx=0;game.score=0;game.combo=0;game.bestCombo=0;game.correctCount=0;game.missed=[];
+  show("play"); loadQuestion();
+}
+function loadQuestion(){
+  game.answered=false; game.revealed=false;
+  const q=game.queue[game.idx];
+  const pt=el("pilettag");
+  if(q.pilet){ pt.style.display="block"; pt.textContent="Teema "+q.piletName; }
+  else pt.style.display="none";
+  el("qtag").textContent=q.tag;
+  el("question").innerHTML=q.q;
+  el("qcount").textContent=`${game.idx+1} / ${game.queue.length}`;
+  el("progfill").style.width=(game.idx/game.queue.length*100)+"%";
+  el("result").className="result"; el("result").innerHTML="";
+  el("nextBtn").className="next"; el("nextBtn").textContent="EDASI →";
+  const box=el("opts"); box.className="opts"; box.innerHTML="";
+  if(answerMode==="ilma"){ renderRecall(q,box); renderCombo(); return; }
+  q._opts=shuffle([q.correct, ...pickByDiff(q.ranked, difficulty)]);
+  q._opts.forEach((opt,i)=>{
+    const m=meaningOf(opt);
+    const b=document.createElement("button");
+    b.className="opt"; b.dataset.txt=opt;
+    b.innerHTML=`<span class="num">${i+1}</span><span class="body"><span class="txt"></span>${m?`<span class="mean"></span>`:""}</span>`;
+    b.querySelector(".txt").textContent=opt;
+    if(m) b.querySelector(".mean").textContent="→ "+m;
+    b.addEventListener("click",()=>answer(opt,b));
+    box.appendChild(b);
+  });
+  renderCombo();
+}
+function renderCombo(){
+  const c=el("combo");
+  if(game.combo>=2){c.textContent=`KOMBO ×${game.combo}`;c.classList.add("show");}
+  else c.classList.remove("show");
+}
+function startTimer(){ /* ajalimiit eemaldatud */ }
+function answer(choice,btn){
+  if(game.answered) return;
+  game.answered=true; clearInterval(game.timer);
+  const q=game.queue[game.idx];
+  const correct=choice===q.correct;
+  el("opts").classList.add("revealed");
+  [...el("opts").children].forEach(b=>{
+    b.disabled=true;
+    if(b.dataset.txt===q.correct) b.classList.add("correct");
+    else if(b===btn) b.classList.add("wrong");
+  });
+  const res=el("result");
+  if(correct){
+    game.combo++; game.bestCombo=Math.max(game.bestCombo,game.combo); game.correctCount++;
+    const gained=100+(game.combo>=2?(game.combo-1)*25:0);
+    game.score+=gained;
+    mistakeBank.delete(q.q);
+    res.className="result show ok"; res.textContent=`Õige!  +${gained}`;
+    sfx(true); if(game.combo>=3) burst();
+    el("screenPlay").classList.add("pop");
+  }else{
+    game.combo=0; game.missed.push(q); mistakeBank.set(q.q,q);
+    res.className="result show no";
+    res.textContent=(choice===null?"Aeg läbi.":"Vale.")+`  Õige: ${q.correct}`;
+    sfx(false); el("screenPlay").classList.add("shake");
+  }
+  setTimeout(()=>el("screenPlay").classList.remove("pop","shake"),350);
+  el("score").textContent=game.score;
+  el("progfill").style.width=((game.idx+1)/game.queue.length*100)+"%";
+  el("nextBtn").classList.add("show");
+  if(game.idx>=game.queue.length-1) el("nextBtn").textContent="VAATA TULEMUST →";
+  renderCombo();
+}
+/* ----- ilma valikvastusteta (õpikaardid) ----- */
+function renderRecall(q, box){
+  const b=document.createElement("button");
+  b.className="btn alt"; b.id="revealBtn"; b.textContent="Näita vastust";
+  b.onclick=()=>revealRecall(q,box);
+  box.appendChild(b);
+}
+function revealRecall(q, box){
+  if(game.revealed) return;
+  game.revealed=true;
+  box.className="opts revealed"; box.innerHTML="";
+  const m=meaningOf(q.correct);
+  const card=document.createElement("div");
+  card.className="opt correct";
+  card.innerHTML=`<span class="num">✓</span><span class="body"><span class="txt"></span>${m?'<span class="mean"></span>':''}</span>`;
+  card.querySelector(".txt").textContent=q.correct;
+  if(m) card.querySelector(".mean").textContent="→ "+m;
+  box.appendChild(card);
+  const g=document.createElement("div"); g.className="graderow";
+  const no=document.createElement("button"); no.className="btn alt gradeno"; no.textContent="Ei teadnud";
+  const yes=document.createElement("button"); yes.className="btn gradeyes"; yes.textContent="Teadsin";
+  no.onclick=()=>gradeRecall(false); yes.onclick=()=>gradeRecall(true);
+  g.appendChild(no); g.appendChild(yes);
+  box.appendChild(g);
+}
+function gradeRecall(ok){
+  if(game.answered) return;
+  game.answered=true;
+  const q=game.queue[game.idx];
+  if(ok){
+    game.combo++; game.bestCombo=Math.max(game.bestCombo,game.combo); game.correctCount++;
+    game.score+=100+(game.combo>=2?(game.combo-1)*25:0);
+    mistakeBank.delete(q.q); sfx(true); if(game.combo>=3) burst();
+  }else{
+    game.combo=0; game.missed.push(q); mistakeBank.set(q.q,q); sfx(false);
+  }
+  el("score").textContent=game.score;
+  el("progfill").style.width=((game.idx+1)/game.queue.length*100)+"%";
+  nextQuestion();
+}
+function nextQuestion(){
+  if(!game.answered) return;
+  if(game.idx>=game.queue.length-1){endGame();return;}
+  game.idx++; loadQuestion();
+}
+function endGame(){
+  clearInterval(game.timer); show("end");
+  const total=game.queue.length;
+  const acc=Math.round(game.correctCount/total*100);
+  const rank=[...RANKS].reverse().find(r=>acc>=r.min)||RANKS[0];
+  el("rank").textContent=rank.name; el("rankSub").textContent=rank.sub;
+  el("endScore").textContent=game.score; el("endAcc").textContent=acc+"%"; el("endBest").textContent="×"+game.bestCombo;
+  el("perfect").style.display=game.correctCount===total?"block":"none";
+  if(acc>=90) megaBurst();
+  const rv=el("review");
+  if(game.missed.length){
+    rv.innerHTML=`<h3>Korda need üle (${game.missed.length})</h3>`+game.missed.map(m=>
+      `<div class="r"><div>${esc(m.q.replace(/<[^>]+>/g,""))}</div><div class="a">→ ${esc(m.correct)}</div></div>`).join("");
+    el("redoBtn").style.display="block";
+  }else{ rv.innerHTML=`<h3>Vigu polnud</h3>`; el("redoBtn").style.display="none"; }
+  game._acc=acc;
+}
+function renderDb(f){
+  f=(f||"").trim().toLowerCase();
+  const hit=s=>String(s).toLowerCase().includes(f);
+  const rows=GLOSSARY.filter(x=>!f||hit(x.term)||hit(x.meaning)||hit(x.g));
+  if(!rows.length){ el("dbList").innerHTML=`<div class="dbempty">Midagi ei leitud</div>`; return; }
+  let html="", cur="";
+  rows.forEach(x=>{
+    if(x.g!==cur){ cur=x.g; html+=`<div class="dbgroup">${esc(cur)}</div>`; }
+    html+=`<div class="dbrow"><b>${esc(x.term)}</b><span>${esc(x.meaning)}</span></div>`;
+  });
+  el("dbList").innerHTML=html;
+}
+let actx=null;
+function sfx(good){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  if(good)[0,4,7,12].forEach((s,i)=>tone(440*Math.pow(2,s/12),"triangle",actx.currentTime+i*0.06,0.12,0.16));
+  else {tone(160,"sawtooth",actx.currentTime,0.26,0.15);tone(120,"sawtooth",actx.currentTime+0.04,0.26,0.13);} }catch(e){} }
+function tone(f,type,t0,d,v){ const o=actx.createOscillator(),g=actx.createGain();
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t0);
+  g.gain.linearRampToValueAtTime(v,t0+0.015);g.gain.exponentialRampToValueAtTime(0.001,t0+d);
+  o.connect(g);g.connect(actx.destination);o.start(t0);o.stop(t0+d+0.02); }
+const cv=el("cfx"),cx=cv.getContext("2d");let parts=[],raf=null;
+function rs(){cv.width=innerWidth;cv.height=innerHeight;} addEventListener("resize",rs);rs();
+function burst(n=24,big=false){ const cols=["#ff4e45","#ffffff","#2ecc71","#ff7a73","#cccccc","#ffffff"];
+  for(let i=0;i<n;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.42,
+    vx:(Math.random()-.5)*(big?14:8),vy:(Math.random()*-1-2)*(big?2.2:1.4),g:0.18,
+    life:60+Math.random()*30,c:cols[Math.random()*cols.length|0],s:4+Math.random()*5,rot:Math.random()*6,vr:(Math.random()-.5)*0.4});
+  if(!raf)loop(); }
+function megaBurst(){for(let k=0;k<6;k++)setTimeout(()=>burst(36,true),k*180);}
+function loop(){ cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.life--;p.rot+=p.vr;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*1.6);cx.restore();});
+  parts=parts.filter(p=>p.life>0&&p.y<cv.height+30);
+  raf=parts.length?requestAnimationFrame(loop):null; }
+
+/* ----- events ----- */
+el("toSetupBtn").onclick=()=>{ show("mode"); };
+el("modeBack").onclick  =()=>show("start");
+el("modeValik").onclick =()=>{ answerMode="valik"; show("setup"); };
+el("modeIlma").onclick  =()=>{ answerMode="ilma"; show("setup"); };
+el("setupBack").onclick =()=>show("mode");
+el("playBtn").onclick   =()=>startGame();
+el("playPiletBtn").onclick=()=>{ const v=+el("piletSelect").value; if(v) startGame({pilet:v}); };
+el("piletSelect").onchange=()=>{ const v=+el("piletSelect").value; el("playPiletBtn").style.opacity=v?1:.45; };
+el("randomPiletBtn").onclick=()=>{ const p=PILETID[Math.random()*PILETID.length|0]; startGame({pilet:p.n}); };
+el("bankBtn").onclick   =()=>startGame({custom:[...mistakeBank.values()]});
+el("againBtn").onclick  =()=>startGame(game.lastOpts);
+el("redoBtn").onclick   =()=>startGame({custom:game.missed.slice()});
+el("homeBtn").onclick   =()=>show("start");
+el("nextBtn").onclick   =nextQuestion;
+el("quitBtn").onclick   =()=>{ clearInterval(game.timer); show("setup"); };
+el("dbBtn").onclick     =()=>{ show("db"); el("dbSearch").value=""; renderDb(""); el("dbSearch").focus(); };
+el("dbBack").onclick    =()=>show("start");
+el("dbSearch").addEventListener("input",e=>renderDb(e.target.value));
+addEventListener("keydown",e=>{
+  if(el("screenPlay").style.display!=="none"){
+    if(e.key==="Escape"){ show("setup"); }
+    else if(answerMode==="ilma"){
+      if(!game.revealed){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); const r=el("revealBtn"); if(r) r.click(); } }
+      else if(!game.answered){ if(e.key==="1"){ const n=el("opts").querySelector(".gradeno"); if(n) n.click(); }
+        else if(e.key==="2"){ const y=el("opts").querySelector(".gradeyes"); if(y) y.click(); } }
+    }
+    else if(["1","2","3","4"].includes(e.key)&&!game.answered){const b=el("opts").children[+e.key-1];if(b)b.click();}
+    else if((e.key==="Enter"||e.key===" ")&&game.answered){e.preventDefault();nextQuestion();}
+  } else if(e.key==="Enter"){
+    if(el("screenStart").style.display!=="none") show("mode");
+    else if(el("screenSetup").style.display!=="none") startGame();
+    else if(el("screenEnd").style.display!=="none") startGame(game.lastOpts);
+  } else if(e.key==="Escape"){
+    if(el("screenDb").style.display!=="none") show("start");
+    else if(el("screenSetup").style.display!=="none") show("mode");
+    else if(el("screenMode").style.display!=="none") show("start");
+  }
+});
+
+renderDiff();
+renderTopics();
+fillPiletSelect();
+el("playPiletBtn").style.opacity=.45;
+show("start");
+})();
+</script>
+</body>
+</html>
