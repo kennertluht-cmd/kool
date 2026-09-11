@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f0f0f" />
+<title>Muinasmaakonnad — kaardiülesanne</title>
+<style>
+  :root{
+    --bg:#0f0f0f; --ink:#f1f1f1; --muted:#aaaaaa;
+    --accent:#ff4e45; --accent2:#ff7a73; --good:#2ecc71; --bad:#ff4e45;
+    --card:#212121; --line:#303030;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{font-family:"Roboto","Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink);
+    -webkit-tap-highlight-color:transparent;background:#0f0f0f;
+    display:flex;align-items:center;justify-content:center;padding:16px;overflow-x:hidden;}
+  .stage{width:100%;max-width:680px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);padding:24px;}
+  .hero{text-align:center;}
+  .tag{display:inline-block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);
+    background:#272727;border:1px solid var(--line);padding:4px 12px;border-radius:999px;margin-bottom:10px;}
+  h1{margin:4px 0 0;font-size:26px;font-weight:900;color:#fff;}
+  .sub{color:var(--muted);margin:12px 0 22px;font-size:14.5px;line-height:1.5;}
+  .btn{border:0;cursor:pointer;font:inherit;font-weight:800;letter-spacing:.3px;padding:15px 24px;border-radius:12px;
+    font-size:16px;width:100%;background:#fff;color:#0f0f0f;transition:.15s;}
+  .btn:hover{transform:translateY(-2px);background:#e9e9e9;}
+  .btn.alt{background:#272727;color:var(--ink);border:1px solid var(--line);}
+  .btn.alt:hover{background:#2e2e2e;border-color:#555;}
+  .btn+.btn{margin-top:10px;}
+  .hud{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;}
+  .quit{background:none;border:1px solid var(--line);color:var(--muted);font:inherit;font-weight:700;font-size:12.5px;
+    padding:6px 11px;border-radius:9px;cursor:pointer;}
+  .quit:hover{border-color:var(--bad);color:var(--ink);}
+  .qcount{color:var(--muted);font-size:13px;font-weight:700;margin-left:auto;}
+  .score{font-size:22px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .score small{color:var(--muted);font-size:12px;}
+  .progress{height:5px;background:#303030;border-radius:6px;overflow:hidden;margin-bottom:14px;}
+  .progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s;}
+  .task{font-size:20px;font-weight:800;margin:0 0 2px;text-align:center;}
+  .task b{color:var(--accent);}
+  .hint{color:var(--muted);font-size:13.5px;text-align:center;margin-bottom:12px;min-height:18px;}
+  .mapwrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;line-height:0;}
+  #cv{width:100%;height:auto;display:block;cursor:crosshair;touch-action:manipulation;}
+  .result{margin-top:14px;font-size:15px;font-weight:700;text-align:center;min-height:22px;}
+  .result.ok{color:var(--good);} .result.no{color:var(--bad);}
+  .next{margin-top:12px;display:none;}
+  .next.show{display:block;}
+  .end{text-align:center;}
+  .rank{font-size:26px;font-weight:900;color:var(--accent);margin:6px 0;}
+  .big{font-size:40px;font-weight:900;color:var(--accent2);}
+  @media (max-width:520px){ .panel{padding:18px 14px;} h1{font-size:22px;} .task{font-size:18px;} }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <section class="panel hero" id="scStart">
+    <span class="tag">Muinas-Eesti</span>
+    <h1>Muinasmaakonnad — kaart</h1>
+    <p class="sub">Sulle näidatakse maakonna <b>vana nime</b> (nt Ugandi) ja pead klikkima, kus see kaardil asub. Sulgudes on kaasaegne vihje (nt Tartu).</p>
+    <button class="btn" id="startBtn">ALUSTA</button>
+    <a class="btn alt" href="eesti-muinasaeg.html" style="display:block;text-align:center;text-decoration:none;line-height:1.2;">← Tagasi kontrolltöö juurde</a>
+  </section>
+
+  <section class="panel" id="scPlay" style="display:none;">
+    <div class="hud">
+      <button class="quit" id="quitBtn">← Menüü</button>
+      <div class="qcount" id="count">1 / 11</div>
+      <div class="score"><span id="score">0</span> <small>p</small></div>
+    </div>
+    <div class="progress"><i id="prog"></i></div>
+    <div class="task" id="task">Kliki maakonnale: <b>—</b></div>
+    <div class="hint" id="hint"></div>
+    <div class="mapwrap"><canvas id="cv" width="1281" height="878"></canvas></div>
+    <div class="result" id="result"></div>
+    <button class="btn next" id="nextBtn">EDASI →</button>
+  </section>
+
+  <section class="panel end" id="scEnd" style="display:none;">
+    <span class="tag">Läbitud</span>
+    <div class="big" id="endScore">0</div>
+    <div class="rank" id="endAcc">0 / 11 õiget</div>
+    <div class="sub" id="endSub"></div>
+    <button class="btn" id="againBtn">Proovi uuesti</button>
+    <a class="btn alt" href="eesti-muinasaeg.html" style="display:block;text-align:center;text-decoration:none;">← Kontrolltöö juurde</a>
+  </section>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+const el=id=>document.getElementById(id);
+const NW=1281, NH=878;
+// maakonnad: vana nimi, vihje, värv kaardil (rgb), keskpunkt (osa laiusest/kõrgusest)
+const COUNTIES=[
+  {n:"Ugandi",   h:"Tartu, Otepää — Kagu-Eesti", rgb:[254,198,137], x:0.80, y:0.74},
+  {n:"Sakala",   h:"Viljandi — Lõuna-Eesti",     rgb:[196,223,155], x:0.52, y:0.66},
+  {n:"Revala",   h:"Tallinn — põhjarannik",       rgb:[0,255,255],   x:0.45, y:0.17},
+  {n:"Harju",    h:"Tallinna tagamaa",            rgb:[109,207,246], x:0.46, y:0.31},
+  {n:"Järva",    h:"Paide — Kesk-Eesti",          rgb:[131,147,202], x:0.62, y:0.30},
+  {n:"Virumaa",  h:"Rakvere, Narva — Kirde-Eesti",rgb:[244,154,193], x:0.83, y:0.20},
+  {n:"Läänemaa", h:"Haapsalu — Lääne-Eesti",      rgb:[198,156,109], x:0.35, y:0.46},
+  {n:"Saaremaa", h:"saared",                      rgb:[247,150,121], x:0.13, y:0.55},
+  {n:"Vaiga",    h:"Ida-Eesti",                   rgb:[255,102,102], x:0.80, y:0.42},
+  {n:"Alempois", h:"Türi kant — Kesk-Eesti",      rgb:[250,173,129], x:0.55, y:0.44},
+  {n:"Mõhu",     h:"Põltsamaa kant",              rgb:[255,247,153], x:0.67, y:0.48},
+];
+const cv=el("cv"), ctx=cv.getContext("2d", {willReadFrequently:true});
+const img=new Image(); let ready=false, imgData=null;
+img.onload=()=>{ ready=true; ctx.drawImage(img,0,0,NW,NH); try{imgData=ctx.getImageData(0,0,NW,NH);}catch(e){imgData=null;} };
+img.src="maps/muinasmaakonnad.png";
+
+const game={queue:[],idx:0,score:0,correct:0,answered:false};
+
+function show(s){ el("scStart").style.display=s==="start"?"block":"none";
+  el("scPlay").style.display=s==="play"?"block":"none"; el("scEnd").style.display=s==="end"?"block":"none"; }
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function start(){
+  game.queue=shuffle(COUNTIES); game.idx=0; game.score=0; game.correct=0;
+  show("play"); loadRound();
+}
+function loadRound(){
+  game.answered=false;
+  const c=game.queue[game.idx];
+  el("task").innerHTML="Kliki maakonnale: <b>"+c.n+"</b>";
+  el("hint").textContent="("+c.h+")";
+  el("count").textContent=(game.idx+1)+" / "+game.queue.length;
+  el("prog").style.width=(game.idx/game.queue.length*100)+"%";
+  el("result").className="result"; el("result").textContent="";
+  el("nextBtn").className="next";
+  ctx.drawImage(img,0,0,NW,NH);
+}
+function px(x,y){ if(!imgData)return null; x=Math.round(x);y=Math.round(y);
+  if(x<0||y<0||x>=NW||y>=NH)return null; const i=(y*NW+x)*4; const d=imgData.data; return [d[i],d[i+1],d[i+2]]; }
+function patchMode(cx,cy,r){ r=r||8; const m=new Map(); let best=null,bn=0;
+  for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const p=px(cx+dx,cy+dy); if(!p)continue;
+    const[R,G,B]=p;
+    if(R<70&&G<70&&B<70)continue;            // must tekst
+    if(R>195&&G<95&&B<95)continue;            // punane täpp
+    if(R>238&&G>238&&B>238)continue;          // valge / meri
+    const k=R+","+G+","+B; const v=(m.get(k)||0)+1; m.set(k,v); if(v>bn){bn=v;best=p;}
+  }
+  return bn>=6?best:null;
+}
+function cdist(a,b){ return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2); }
+function detect(nx,ny){
+  const col=patchMode(nx,ny); if(!col)return null;
+  let cands=COUNTIES.filter(c=>cdist(col,c.rgb)<60);
+  if(!cands.length){ let best=COUNTIES[0],bd=1e9; for(const c of COUNTIES){const d=cdist(col,c.rgb); if(d<bd){bd=d;best=c;}} if(bd>95)return null; cands=[best]; }
+  // sama värvi piirkonnad: vali klikile lähim keskpunkt
+  let best=cands[0],bd=1e18;
+  for(const c of cands){ const d=(nx-c.x*NW)**2+(ny-c.y*NH)**2; if(d<bd){bd=d;best=c;} }
+  return best;
+}
+function marker(c,color){ const x=c.x*NW,y=c.y*NH;
+  ctx.beginPath(); ctx.arc(x,y,16,0,7); ctx.fillStyle=color; ctx.globalAlpha=.35; ctx.fill(); ctx.globalAlpha=1;
+  ctx.lineWidth=5; ctx.strokeStyle=color; ctx.stroke();
+}
+function dot(x,y,color){ ctx.beginPath(); ctx.arc(x,y,9,0,7); ctx.fillStyle=color; ctx.fill();
+  ctx.lineWidth=3; ctx.strokeStyle="#fff"; ctx.stroke(); }
+
+cv.addEventListener("click",e=>{
+  if(!ready||game.answered) return;
+  const r=cv.getBoundingClientRect();
+  const nx=(e.clientX-r.left)/r.width*NW, ny=(e.clientY-r.top)/r.height*NH;
+  const hit=detect(nx,ny);
+  if(!hit){ el("result").className="result no"; el("result").textContent="Kliki maakonna (värvilise ala) peale."; return; }
+  game.answered=true;
+  const target=game.queue[game.idx];
+  const ok = hit.n===target.n;
+  dot(nx,ny, ok?"#2ecc71":"#ff4e45");
+  const res=el("result");
+  if(ok){ game.score+=100; game.correct++; res.className="result ok"; res.textContent="Õige! "+target.n+" — "+target.h; }
+  else { marker(target,"#2ecc71"); res.className="result no"; res.textContent="Vale (klikkisid: "+hit.n+"). "+target.n+" asub siin (roheline)."; }
+  el("score").textContent=game.score;
+  el("prog").style.width=((game.idx+1)/game.queue.length*100)+"%";
+  el("nextBtn").className="next show";
+  el("nextBtn").textContent = game.idx>=game.queue.length-1 ? "VAATA TULEMUST →" : "EDASI →";
+});
+function next(){ if(!game.answered)return;
+  if(game.idx>=game.queue.length-1){ endGame(); return; }
+  game.idx++; loadRound(); }
+function endGame(){ show("end");
+  const t=game.queue.length;
+  el("endScore").textContent=game.score;
+  el("endAcc").textContent=game.correct+" / "+t+" õiget";
+  const pct=Math.round(game.correct/t*100);
+  el("endSub").textContent = pct>=90?"Suurepärane — tunned muinasmaakonnad!":pct>=60?"Tubli! Korda veel mõned üle.":"Vaata kaart üle ja proovi uuesti.";
+}
+el("startBtn").onclick=start;
+el("againBtn").onclick=start;
+el("nextBtn").onclick=next;
+el("quitBtn").onclick=()=>show("start");
+addEventListener("keydown",e=>{ if(e.key==="Enter"){
+  if(el("scStart").style.display!=="none")start();
+  else if(el("scPlay").style.display!=="none"&&game.answered)next();
+  else if(el("scEnd").style.display!=="none")start(); }});
+show("start");
+})();
+</script>
+</body>
+</html>
