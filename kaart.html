@@ -94,25 +94,32 @@
 (() => {
 "use strict";
 const el=id=>document.getElementById(id);
-const NW=1281, NH=878;
+const NW=1515, NH=1038;
 // maakonnad: vana nimi, vihje, värv kaardil (rgb), keskpunkt (osa laiusest/kõrgusest)
 const COUNTIES=[
-  {n:"Ugandi",   h:"Tartu, Otepää — Kagu-Eesti", rgb:[254,198,137], x:0.80, y:0.74},
-  {n:"Sakala",   h:"Viljandi — Lõuna-Eesti",     rgb:[196,223,155], x:0.52, y:0.66},
-  {n:"Revala",   h:"Tallinn — põhjarannik",       rgb:[0,255,255],   x:0.45, y:0.17},
-  {n:"Harju",    h:"Tallinna tagamaa",            rgb:[109,207,246], x:0.46, y:0.31},
-  {n:"Järva",    h:"Paide — Kesk-Eesti",          rgb:[131,147,202], x:0.62, y:0.30},
-  {n:"Virumaa",  h:"Rakvere, Narva — Kirde-Eesti",rgb:[244,154,193], x:0.83, y:0.20},
-  {n:"Läänemaa", h:"Haapsalu — Lääne-Eesti",      rgb:[198,156,109], x:0.35, y:0.46},
-  {n:"Saaremaa", h:"saared",                      rgb:[247,150,121], x:0.13, y:0.55},
-  {n:"Vaiga",    h:"Ida-Eesti",                   rgb:[255,102,102], x:0.80, y:0.42},
-  {n:"Alempois", h:"Türi kant — Kesk-Eesti",      rgb:[250,173,129], x:0.55, y:0.44},
-  {n:"Mõhu",     h:"Põltsamaa kant",              rgb:[255,247,153], x:0.67, y:0.48},
+  {n:"Ugandi",   h:"Tartu, Otepää — Kagu-Eesti", rgb:[253,202,127], x:0.80, y:0.74},
+  {n:"Sakala",   h:"Viljandi — Lõuna-Eesti",     rgb:[193,225,147], x:0.52, y:0.66},
+  {n:"Revala",   h:"Tallinn — põhjarannik",       rgb:[0,250,254],   x:0.45, y:0.17},
+  {n:"Harju",    h:"Tallinna tagamaa",            rgb:[97,206,253],  x:0.46, y:0.31},
+  {n:"Järva",    h:"Paide — Kesk-Eesti",          rgb:[117,135,197], x:0.62, y:0.30},
+  {n:"Virumaa",  h:"Rakvere, Narva — Kirde-Eesti",rgb:[245,129,187], x:0.83, y:0.20},
+  {n:"Läänemaa", h:"Haapsalu — Lääne-Eesti",      rgb:[197,148,91],  x:0.35, y:0.44},
+  {n:"Saaremaa", h:"saared",                      rgb:[254,141,104], x:0.13, y:0.55},
+  {n:"Vaiga",    h:"Ida-Eesti",                   rgb:[250,96,92],   x:0.80, y:0.42},
+  {n:"Alempois", h:"Türi kant — Kesk-Eesti",      rgb:[254,175,119], x:0.55, y:0.44},
+  {n:"Mõhu",     h:"Põltsamaa kant",              rgb:[254,253,148], x:0.67, y:0.48},
 ];
+// tuvastuspaletti: värv -> maakond; sisaldab ka piirkondi, mida ei küsita
+// (Soontagana loeb Läänemaa alla; Nurmekund/Jogentagana eristamiseks, et ei loeks valesti õigeks)
+const TARGETS = COUNTIES.map(c=>({rgb:c.rgb, n:c.n, x:c.x, y:c.y})).concat([
+  {rgb:[163,141,196], n:"Läänemaa",    x:0.37, y:0.55},
+  {rgb:[107,209,142], n:"Nurmekund",   x:0.62, y:0.52},
+  {rgb:[254,153,46],  n:"Jogentagana", x:0.72, y:0.55},
+]);
 const cv=el("cv"), ctx=cv.getContext("2d", {willReadFrequently:true});
 const img=new Image(); let ready=false, imgData=null;
 img.onload=()=>{ ready=true; ctx.drawImage(img,0,0,NW,NH); try{imgData=ctx.getImageData(0,0,NW,NH);}catch(e){imgData=null;} };
-img.src="maps/muinasmaakonnad.png";
+img.src="maps/muinasmaakonnad_tyhi.png";
 
 const game={queue:[],idx:0,score:0,correct:0,answered:false};
 
@@ -140,8 +147,7 @@ function px(x,y){ if(!imgData)return null; x=Math.round(x);y=Math.round(y);
 function patchMode(cx,cy,r){ r=r||8; const m=new Map(); let best=null,bn=0;
   for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++){ const p=px(cx+dx,cy+dy); if(!p)continue;
     const[R,G,B]=p;
-    if(R<70&&G<70&&B<70)continue;            // must tekst
-    if(R>195&&G<95&&B<95)continue;            // punane täpp
+    if(R<70&&G<70&&B<70)continue;            // must piir
     if(R>238&&G>238&&B>238)continue;          // valge / meri
     const k=R+","+G+","+B; const v=(m.get(k)||0)+1; m.set(k,v); if(v>bn){bn=v;best=p;}
   }
@@ -150,8 +156,8 @@ function patchMode(cx,cy,r){ r=r||8; const m=new Map(); let best=null,bn=0;
 function cdist(a,b){ return Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2); }
 function detect(nx,ny){
   const col=patchMode(nx,ny); if(!col)return null;
-  let cands=COUNTIES.filter(c=>cdist(col,c.rgb)<60);
-  if(!cands.length){ let best=COUNTIES[0],bd=1e9; for(const c of COUNTIES){const d=cdist(col,c.rgb); if(d<bd){bd=d;best=c;}} if(bd>95)return null; cands=[best]; }
+  let cands=TARGETS.filter(c=>cdist(col,c.rgb)<55);
+  if(!cands.length){ let best=TARGETS[0],bd=1e9; for(const c of TARGETS){const d=cdist(col,c.rgb); if(d<bd){bd=d;best=c;}} if(bd>90)return null; cands=[best]; }
   // sama värvi piirkonnad: vali klikile lähim keskpunkt
   let best=cands[0],bd=1e18;
   for(const c of cands){ const d=(nx-c.x*NW)**2+(ny-c.y*NH)**2; if(d<bd){bd=d;best=c;} }
